@@ -47,7 +47,7 @@ export async function prepareAgentProposal(
     0,
     4000,
   );
-  const memoryHints = searchMemories(input.objective, 5)
+  const memoryHints = (await searchMemories(input.objective, 5))
     .map((x: any) => String(x.summary).slice(0, 200))
     .join("\n");
   const harness = process.env.AGENT_HARNESS || "codex";

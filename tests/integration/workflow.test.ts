@@ -22,10 +22,10 @@ Runtime.install({ logger: new DefaultLogger("ERROR") });
 async function waitForStatus(taskId: string, expected: string) {
   const deadline = Date.now() + 15_000;
   while (Date.now() < deadline) {
-    if (store.getTask(taskId)?.status === expected) return;
+    if ((await store.getTask(taskId))?.status === expected) return;
     await new Promise((resolve) => setTimeout(resolve, 20));
   }
-  throw Error(`Expected ${expected}, got ${store.getTask(taskId)?.status}`);
+  throw Error(`Expected ${expected}, got ${(await store.getTask(taskId))?.status}`);
 }
 
 test(
@@ -67,7 +67,7 @@ test(
       }
       async function decide(id: string, decision: "approved" | "rejected") {
         const task = (
-          store.listTasks() as {
+          (await store.listTasks()) as {
             id: string;
             approval_id: string;
             result: string;
@@ -96,14 +96,14 @@ test(
           await env!.teardown();
           env = undefined;
           env = await TestWorkflowEnvironment.createLocal({ server });
-          assert.equal(store.getTask(id)?.status, "waiting_approval");
+          assert.equal((await store.getTask(id))?.status, "waiting_approval");
           await decide(id, "approved");
           const second = await worker();
           const result = await second.runUntil(() =>
             env!.client.workflow.getHandle(id).result(),
           );
           assert.equal(result.status, "completed");
-          assert.equal(store.getTask(id)?.status, "completed");
+          assert.equal((await store.getTask(id))?.status, "completed");
           assert.match(result.message, /NO PR published/);
         },
       );
@@ -119,7 +119,7 @@ test(
             "cancelled",
           );
         });
-        assert.equal(store.getTask(id)?.status, "cancelled");
+        assert.equal((await store.getTask(id))?.status, "cancelled");
       });
 
       await t.test(
@@ -130,7 +130,7 @@ test(
           await w.runUntil(async () => {
             await waitForStatus(id, "waiting_approval");
             const approval = (
-              store.listTasks() as { id: string; approval_id: string }[]
+              (await store.listTasks()) as { id: string; approval_id: string }[]
             ).find((x) => x.id === id)!;
             await env!.client.workflow
               .getHandle(id)
@@ -143,7 +143,7 @@ test(
               "blocked",
             );
             assert.equal(
-              store.getApproval(approval.approval_id)?.status,
+              (await store.getApproval(approval.approval_id))?.status,
               "pending",
             );
           });
@@ -162,7 +162,7 @@ test(
           assert.equal(r.status, 200);
           await assert.rejects(env!.client.workflow.getHandle(id).result());
         });
-        assert.equal(store.getTask(id)?.status, "cancelled");
+        assert.equal((await store.getTask(id))?.status, "cancelled");
       });
 
       await t.test(
@@ -177,7 +177,7 @@ test(
           await w.runUntil(() =>
             assert.rejects(env!.client.workflow.getHandle(id).result()),
           );
-          assert.equal(store.getTask(id)?.status, "failed");
+          assert.equal((await store.getTask(id))?.status, "failed");
         },
       );
 
@@ -202,7 +202,7 @@ test(
       );
     } finally {
       await env?.teardown();
-      store.db.close();
+      await store.closeDb();
       rmSync(dataDir, { recursive: true, force: true });
     }
   },

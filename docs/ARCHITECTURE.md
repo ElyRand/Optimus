@@ -8,7 +8,7 @@ flowchart TD
   Initiative --> Temporal[Temporal Server]
   API --> Temporal
   Temporal <--> Worker[Temporal Worker]
-  Worker --> DB[(SQLite FTS5 + Task/Audit tables)]
+  Worker --> DB[(Prisma SQLite + FTS5 memory)]
   Worker --> Identity[SOUL.md + Skills]
   Worker --> Decision[Rules or Jev Decision Engine]
   Worker --> Broker[Permission Broker]
@@ -21,7 +21,7 @@ flowchart TD
   Temporal --> PG[(Temporal persistence)]
 ```
 
-**Boundaries:** Temporal owns mission lifecycle; TanStack AI owns harness invocation; sandbox owns untrusted execution; host broker owns privileged action authorization; SQLite owns long-lived agent state; Slack/UI are channels, not the agent's brain.
+**Boundaries:** Temporal owns mission lifecycle; TanStack AI owns harness invocation; sandbox owns untrusted execution; host broker owns privileged action authorization; Prisma on SQLite owns long-lived agent state; Slack/UI are channels, not the agent's brain.
 
 **Temporal history ≠ streamed LLM tokens:** save streaming chunks to an external event log, store artifact references and compact outputs in Temporal history.
 
