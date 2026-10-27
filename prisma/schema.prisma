@@ -1,0 +1,78 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../packages/db/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Setting {
+  key   String @id
+  value String
+
+  @@map("settings")
+}
+
+model Task {
+  id        String  @id
+  repo      String
+  objective String
+  status    String  @default("queued")
+  result    String?
+  createdAt String  @map("created_at")
+  updatedAt String  @map("updated_at")
+  approval  Approval?
+
+  @@map("tasks")
+}
+
+model Approval {
+  id          String  @id
+  taskId      String  @unique @map("task_id")
+  action      String
+  resource    String
+  payloadHash String  @map("payload_hash")
+  status      String  @default("pending")
+  decidedBy   String? @map("decided_by")
+  decidedAt   String? @map("decided_at")
+  createdAt   String  @map("created_at")
+  task        Task    @relation(fields: [taskId], references: [id])
+
+  @@map("approvals")
+}
+
+model ExternalEvent {
+  id          String  @id
+  fingerprint String  @unique
+  source      String
+  eventType   String  @map("event_type")
+  repo        String?
+  body        String
+  createdAt   String  @map("created_at")
+
+  @@map("external_events")
+}
+
+model Memory {
+  id              String @id
+  kind            String
+  title           String
+  summary         String
+  body            String
+  sourceMessageId String @map("source_message_id")
+  createdAt       String @map("created_at")
+
+  @@map("memories")
+}
+
+model AuditEvent {
+  id        String  @id
+  taskId    String? @map("task_id")
+  actor     String
+  eventType String  @map("event_type")
+  payload   String
+  createdAt String  @map("created_at")
+
+  @@map("audit")
+}

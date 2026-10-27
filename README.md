@@ -1,6 +1,6 @@
 # Optimus
 
-A local-first personal agent with supervised autonomy, built with **TanStack AI, Temporal, Hono, React and SQLite**.
+A local-first personal agent with supervised autonomy, built with **TanStack AI, Temporal, Hono, React, Prisma and SQLite**.
 
 **Status: working dry-run prototype.** API, proposal review, approval, cancellation and recovery have automated tests. All GitHub publication remains simulated. The live Codex/Claude microVM harness is experimental and has not been exercised by CI.
 
@@ -10,7 +10,7 @@ A local-first personal agent with supervised autonomy, built with **TanStack AI,
 - Temporal missions: prepare → show proposal → await owner decision → recheck policy and payload → simulated completion.
 - Durable approvals bound to the exact task, repository and objective. Altering the action invalidates approval.
 - Global pause, per-mission cancellation, explicit failure states, and approval recovery after worker and Temporal server restarts.
-- SQLite task/approval/audit ledger and bounded FTS5 memory search.
+- Prisma on SQLite for the task, approval and audit ledger, with bounded FTS5 memory search.
 - Deterministic initiative rules for allowlisted `ci.failed` events submitted to the authenticated API.
 - Optional owner-scoped Slack Socket Mode integration. Slack notification failures leave dashboard approval available.
 - Codex (default) or Claude Code adapter through Docker Sandboxes microVMs only; disabled by default.

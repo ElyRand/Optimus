@@ -17,7 +17,7 @@ Create a **local-first supervised autonomous personal agent**, not a chatbot or 
 
 ## Architecture
 
-apps/api (Hono + Slack) -> Temporal workflow -> worker Activities -> TanStack AI sandbox and Permission Broker. Host SQLite stores memories, tasks, approval and event log. Temporal uses separate persistence. `packages/` is shared logic.
+apps/api (Hono + Slack) -> Temporal workflow -> worker Activities -> TanStack AI sandbox and Permission Broker. Host Prisma/SQLite stores memories, tasks, approval and event log. Temporal uses separate persistence. `packages/` is shared logic.
 
 ## Work order
 

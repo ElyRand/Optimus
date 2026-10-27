@@ -62,9 +62,9 @@ export function createApi(
     await next();
   });
   async function enqueueTask(repo: string, objective: string) {
-    if (isPaused()) throw Error("Optimus is paused");
+    if (await isPaused()) throw Error("Optimus is paused");
     if (!allowedRepos().has(repo)) throw Error("Repository not allowlisted");
-    const id = createTask(repo, objective);
+    const id = await createTask(repo, objective);
     try {
       await (
         await getClient()
@@ -74,12 +74,12 @@ export function createApi(
         args: [{ taskId: id, repo, objective }],
       });
     } catch (e) {
-      setTaskStatus(
+      await setTaskStatus(
         id,
         "failed",
         "Temporal could not start the mission. Retry after checking the service.",
       );
-      audit(id, "system", "temporal.start_failed", { error: String(e) });
+      await audit(id, "system", "temporal.start_failed", { error: String(e) });
       throw e;
     }
     return id;
@@ -90,8 +90,8 @@ export function createApi(
     decision: "approved" | "rejected",
     actor: string,
   ) {
-    const task = getTask(taskId);
-    const approval = getApproval(approvalId);
+    const task = await getTask(taskId);
+    const approval = await getApproval(approvalId);
     if (
       !task ||
       !approval ||
@@ -101,29 +101,29 @@ export function createApi(
       throw Error("Approval does not match task");
     if (!["waiting_approval", "finalizing"].includes(task.status))
       throw Error("Task is not waiting for approval");
-    decideApproval(approvalId, taskId, decision, actor);
+    await decideApproval(approvalId, taskId, decision, actor);
     await (
       await getClient()
     ).workflow
       .getHandle(taskId)
       .signal("approval", { approvalId, approved: decision === "approved" });
   }
-  app.get("/api/tasks", (c) =>
-    c.json({ tasks: listTasks(), paused: isPaused() }),
+  app.get("/api/tasks", async (c) =>
+    c.json({ tasks: await listTasks(), paused: await isPaused() }),
   );
   app.post("/api/control/pause", async (c) => {
     const body = await c.req.json().catch(() => ({}));
     if (typeof body.paused !== "boolean")
       return c.json({ error: "paused boolean required" }, 400);
-    setPaused(body.paused);
-    return c.json({ paused: isPaused() });
+    await setPaused(body.paused);
+    return c.json({ paused: await isPaused() });
   });
   app.post("/api/tasks/:id/cancel", async (c) => {
     const id = c.req.param("id");
-    if (!getTask(id)) return c.json({ error: "Unknown task" }, 404);
+    if (!(await getTask(id))) return c.json({ error: "Unknown task" }, 404);
     try {
       await (await getClient()).workflow.getHandle(id).cancel();
-      setTaskStatus(id, "cancelled");
+      await setTaskStatus(id, "cancelled");
       return c.json({ status: "cancelled" });
     } catch (e) {
       return c.json({ error: String(e) }, 409);
@@ -134,7 +134,7 @@ export function createApi(
       await c.req.json().catch(() => null),
     );
     if (!body.success) return c.json({ error: body.error.flatten() }, 400);
-    if (isPaused()) return c.json({ error: "Optimus is paused" }, 409);
+    if (await isPaused()) return c.json({ error: "Optimus is paused" }, 409);
     if (!allowedRepos().has(body.data.repo))
       return c.json({ error: "Repository not allowlisted" }, 403);
     try {
@@ -149,7 +149,7 @@ export function createApi(
   app.post("/api/events", async (c) => {
     const body = eventSchema.safeParse(await c.req.json().catch(() => null));
     if (!body.success) return c.json({ error: body.error.flatten() }, 400);
-    const first = recordExternalEvent(body.data);
+    const first = await recordExternalEvent(body.data);
     if (!first) return c.json({ status: "duplicate" });
     const initiative = await new RulesDecisionEngine().decide(body.data);
     if (initiative.action !== "investigate" || !body.data.repo)
@@ -184,9 +184,9 @@ export function createApi(
       return c.json({ error: String(e) }, 409);
     }
   });
-  app.get("/api/memories/search", (c) => {
+  app.get("/api/memories/search", async (c) => {
     const q = c.req.query("q") ?? "";
-    return c.json({ results: searchMemories(q) });
+    return c.json({ results: await searchMemories(q) });
   });
 
   return { app, enqueueTask, decideForTask };

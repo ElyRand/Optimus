@@ -19,7 +19,7 @@ export async function setStatus(
   status: string,
   result?: string,
 ) {
-  setTaskStatus(taskId, status, result);
+  await setTaskStatus(taskId, status, result);
 }
 export async function prepare(input: {
   taskId: string;
@@ -29,24 +29,26 @@ export async function prepare(input: {
   | { state: "blocked" }
   | { state: "prepared"; approvalId: string; summary: string }
 > {
-  if (isPaused()) return { state: "blocked" };
+  if (await isPaused()) return { state: "blocked" };
   if (
     decidePolicy(
       { capability: "github.create_pr", resource: input.repo },
       allowedRepos(),
     ) !== "ask"
   ) {
-    audit(input.taskId, "policy", "proposal.blocked", { resource: input.repo });
+    await audit(input.taskId, "policy", "proposal.blocked", {
+      resource: input.repo,
+    });
     return { state: "blocked" };
   }
   const proposal = await prepareAgentProposal(input);
-  const approvalId = saveApproval(
+  const approvalId = await saveApproval(
     input.taskId,
     proposal.action,
     proposal.resource,
     proposal.payloadHash,
   );
-  audit(input.taskId, "harness", "proposal.prepared", {
+  await audit(input.taskId, "harness", "proposal.prepared", {
     approvalId,
     summary: proposal.summary,
     simulated: proposal.simulated,
@@ -100,10 +102,10 @@ Task: \`${taskId}\``,
   });
 }
 export async function finalize(taskId: string, approvalId: string) {
-  if (isPaused())
+  if (await isPaused())
     return { status: "blocked", message: "Optimus paused by owner" };
-  const approval = getApproval(approvalId);
-  const task = getTask(taskId);
+  const approval = await getApproval(approvalId);
+  const task = await getTask(taskId);
   if (
     !approval ||
     !task ||
@@ -129,7 +131,7 @@ export async function finalize(taskId: string, approvalId: string) {
     return { status: "blocked", message: "Permission broker denied action" };
   }
   // INTENTIONALLY NO GitHub write here. No verified diff or release capability yet.
-  audit(taskId, "broker", "publication.simulated", {
+  await audit(taskId, "broker", "publication.simulated", {
     approvalId,
     payloadHash: approval.payload_hash,
   });
